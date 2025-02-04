@@ -3,9 +3,14 @@ def running_total(array)
   array.map { |num| sum += num }
 end
 
-# Solution 2
+# Solution 2: each_with_object
 # def running_total(array)
 #   array.each_with_object([]) { |num, obj| obj << (obj.last.to_i + num) }
+# end
+
+# Solution 3: reduce
+# def running_total(array)
+#   array.reduce([]) { |obj, num| obj << (obj.last.to_i + num) }
 # end
 
 p running_total([2, 5, 13]) == [2, 7, 20]

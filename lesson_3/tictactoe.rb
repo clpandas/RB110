@@ -10,9 +10,12 @@ def prompt(msg)
   puts "=> #{msg}"
 end
 
+def clear_screen
+  system 'cls'
+end
+
 # rubocop:disable Metrics/AbcSize
 def display_board(brd)
-  system 'cls'
   puts "You're a #{PLAYER_MARKER}. Computer is a #{COMPUTER_MARKER}."
   puts ""
   puts "     |     |"
@@ -40,10 +43,48 @@ def empty_squares(brd)
   brd.keys.select { |num| brd[num] == INITIAL_MARKER }
 end
 
+def joinor(arr, separator = ', ', last_separator = 'or')
+  result = ''
+  last_idx = arr.length - 1
+
+  return arr.first.to_s + " " + last_separator + " " + arr.last.to_s if arr.size == 2
+
+  arr.each_with_index do |el, idx|
+    result << el.to_s
+    result << separator unless idx == last_idx
+    result << last_separator + " " if idx == last_idx - 1
+  end
+
+  result
+end
+
+def find_at_risk_square(brd, marker)
+  WINNING_LINES.each do |line|
+    values = brd.values_at(line[0], line[1], line[2])
+    if values.count(marker) == 2 && values.count(INITIAL_MARKER) == 1
+      return line[values.index(INITIAL_MARKER)]
+    end
+  end
+
+  nil
+end
+
+def place_piece!(board, current_player)
+  if current_player == 'player'
+    player_turn!(board)
+  else
+    computer_turn!(board)
+  end
+end
+
+def alternate_player(current_player)
+  current_player == 'player' ? 'computer' : 'player'
+end
+
 def player_turn!(brd)
   square = ''
   loop do
-    prompt "Choose a square (#{empty_squares(brd).join(', ')}):"
+    prompt "Choose a position to place a piece: #{joinor(empty_squares(brd))}"
     square = gets.chomp.to_i
     break if empty_squares(brd).include?(square)
     prompt "Sorry, that is not a valid choice."
@@ -53,7 +94,10 @@ def player_turn!(brd)
 end
 
 def computer_turn!(brd)
-  square = empty_squares(brd).sample
+  square = find_at_risk_square(brd, COMPUTER_MARKER)
+  square ||= find_at_risk_square(brd, PLAYER_MARKER)
+  square ||= 5 if brd[5] == INITIAL_MARKER
+  square ||= empty_squares(brd).sample
   brd[square] = COMPUTER_MARKER
 end
 
@@ -67,55 +111,91 @@ end
 
 def detect_winner(brd)
   WINNING_LINES.each do |line|
-    # if brd[line[0]] == PLAYER_MARKER &&
-    #    brd[line[1]] == PLAYER_MARKER &&
-    #    brd[line[2]] == PLAYER_MARKER
-    #   return 'Player'
-    # elsif brd[line[0]] == COMPUTER_MARKER &&
-    #       brd[line[1]] == COMPUTER_MARKER &&
-    #       brd[line[2]] == COMPUTER_MARKER
-    #   return 'Computer'
-    # end
-
-    # A refactored approach:
-    # if brd.values_at(line[0], line[1], line[2]).count(PLAYER_MARKER) == 3
-    #   return 'Player'
-    # elsif brd.values_at(line[0], line[1], line[2]).count(COMPUTER_MARKER) == 3
-    #   return 'Computer'
-    # end
-
-    # Refactored even more:
-    if brd.values_at(*line).count(PLAYER_MARKER) == 3
+    values = brd.values_at(line[0], line[1], line[2])
+    if values.count(PLAYER_MARKER) == 3
       return 'Player'
-    elsif brd.values_at(*line).count(COMPUTER_MARKER) == 3
+    elsif values.count(COMPUTER_MARKER) == 3
       return 'Computer'
     end
   end
   nil
 end
 
+# Main game
+prompt "Welcome to tictactoe!"
+sleep(1.5)
+
+first_move = ''
+
 loop do
-  board = initialize_board
+  prompt "Who should go first? (p for Player, c for Computer, s for Suprise)"
+  first_move = gets.chomp.downcase
+
+  if ['p', 'c', 's'].include?(first_move)
+    break
+  else
+    prompt "Invalid choice. Please enter 'p', 'c', or 's'."
+  end
+end
+
+if first_move == 's'
+  first_move = ['p', 'c'].sample
+  prompt "Computer randomly choses: #{first_move == 'p' ? 'Player' : 'Computer'}."
+  sleep(1.5)
+end
+
+loop do
+  scorecard = { player: 0, computer: 0 }
 
   loop do
+    board = initialize_board
+
+    if first_move == 'p'
+      turn = 'player'
+    else
+      turn = 'computer'
+    end
+    
+    current_player = first_move == 'p' ? 'player' : 'computer'
+
+    loop do
+      clear_screen
+      display_board(board)
+      place_piece!(board, current_player)
+      break if someone_won?(board) || board_full?(board)
+      current_player = alternate_player(current_player)
+    end
+
+    clear_screen
     display_board(board)
 
-    player_turn!(board)
-    break if someone_won?(board) || board_full?(board)
+    winner = detect_winner(board)
 
-    computer_turn!(board)
-    break if someone_won?(board) || board_full?(board)
+    if winner
+      prompt "#{winner} won this round!"
+      scorecard[:player] += 1 if winner == 'Player'
+      scorecard[:computer] += 1 if winner == 'Computer'
+    else
+      prompt "It's a tie!"
+    end
+
+    prompt "Score - Player: #{scorecard[:player]}, Computer: #{scorecard[:computer]}"
+
+    unless scorecard[:player] == 5 || scorecard[:computer] == 5
+      prompt "Press Enter to continue to the next round..." 
+      gets
+    end
+
+    if scorecard[:player] == 5
+      prompt "Player is the MATCH WINNER."
+      break
+    elsif scorecard[:computer] == 5
+      prompt "Computer is the MATCH WINNER."
+      break
+    end
   end
 
-  display_board(board)
-
-  if someone_won?(board)
-    prompt "#{detect_winner(board)} won!"
-  else
-    prompt "It's a tie!"
-  end
-
-  prompt "Play again? (y or n)"
+  prompt "Would you like to play another match to 5? (y or n)"
   answer = gets.chomp
   break unless answer.downcase.start_with?('y')
 end

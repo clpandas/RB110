@@ -47,12 +47,12 @@ def joinor(arr, separator = ', ', last_separator = 'or')
   result = ''
   last_idx = arr.length - 1
 
-  return arr.first.to_s + " " + last_separator + " " + arr.last.to_s if arr.size == 2
+  return "#{arr.first} #{last_separator} #{arr.last}" if arr.size == 2
 
   arr.each_with_index do |el, idx|
     result << el.to_s
     result << separator unless idx == last_idx
-    result << last_separator + " " if idx == last_idx - 1
+    result << "#{last_separator} " if idx == last_idx - 1
   end
 
   result
@@ -140,7 +140,8 @@ end
 
 if first_move == 's'
   first_move = ['p', 'c'].sample
-  prompt "Computer randomly choses: #{first_move == 'p' ? 'Player' : 'Computer'}."
+  computer_choice = first_move == 'p' ? 'Player' : 'Computer'
+  prompt "Computer randomly choses: #{computer_choice}."
   sleep(1.5)
 end
 
@@ -150,12 +151,6 @@ loop do
   loop do
     board = initialize_board
 
-    if first_move == 'p'
-      turn = 'player'
-    else
-      turn = 'computer'
-    end
-    
     current_player = first_move == 'p' ? 'player' : 'computer'
 
     loop do
@@ -179,10 +174,12 @@ loop do
       prompt "It's a tie!"
     end
 
-    prompt "Score - Player: #{scorecard[:player]}, Computer: #{scorecard[:computer]}"
+    player_score = scorecard[:player]
+    computer_score = scorecard[:computer]
+    prompt "Score - Player: #{player_score}, Computer: #{computer_score}"
 
     unless scorecard[:player] == 5 || scorecard[:computer] == 5
-      prompt "Press Enter to continue to the next round..." 
+      prompt "Press Enter to continue to the next round..."
       gets
     end
 
